@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boletim Financeiro — Gestão em Saúde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2B3A;
+    --ink-soft:#48596C;
+    --paper:#E7E3D6;
+    --paper-raised:#F3F0E5;
+    --line:#C7C0AC;
+    --slate:#46625F;      /* SUS */
+    --mustard:#B9812A;    /* Particular / Pendente */
+    --rose:#A8425A;       /* Convênio */
+    --ok:#4C7A5E;         /* Pago / positivo */
+    --alert:#963A2E;      /* Glosado / Cancelada / crítico */
+    --shadow: 0 1px 0 rgba(28,43,58,.06);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  h1,h2,h3{font-family:'Fraunces', serif; margin:0; font-weight:600;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:inherit;}
+  :focus-visible{outline:2px solid var(--rose); outline-offset:2px;}
+
+  /* ---------- layout ---------- */
+  .rail{
+    position:fixed; top:0; left:0; width:266px; height:100vh;
+    background:var(--ink); color:var(--paper-raised);
+    padding:1.7rem 1.5rem; display:flex; flex-direction:column;
+    overflow-y:auto;
+  }
+  .rail-mark{
+    font-family:'Fraunces', serif; font-size:1.6rem; font-weight:700;
+    color:var(--rose); display:block; margin-bottom:.3rem;
+  }
+  .rail h1{font-size:1.5rem; line-height:1.15; color:#fff;}
+  .rail-sub{
+    font-size:.74rem; color:#A9B6C4; margin:.6rem 0 1.8rem;
+    letter-spacing:.03em;
+  }
+  .rail-nav{display:flex; flex-direction:column; gap:.15rem; margin-bottom:1.8rem;}
+  .rail-nav a{
+    display:flex; gap:.6rem; align-items:baseline;
+    text-decoration:none; padding:.5rem .4rem; border-radius:3px;
+    color:#C8D1DA; font-size:.92rem; transition:background .15s, color .15s;
+    border-left:2px solid transparent;
+  }
+  .rail-nav a .folio{font-family:'IBM Plex Mono', monospace; font-size:.7rem; color:#7E8FA0;}
+  .rail-nav a:hover{background:rgba(255,255,255,.05); color:#fff;}
+  .rail-nav a.active{color:#fff; border-left-color:var(--rose); background:rgba(255,255,255,.06);}
+  .rail-nav a.active .folio{color:var(--rose);}
+
+  .rail-period{
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+    border-radius:5px; padding:.85rem .9rem; margin-bottom:auto;
+  }
+  .rail-period label{
+    display:block; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+    color:#9AAAB9; margin-bottom:.5rem;
+  }
+  .rail-period .row{display:flex; align-items:center; gap:.4rem; margin-bottom:.4rem;}
+  .rail-period input[type=date]{
+    flex:1; min-width:0; background:#10202E; border:1px solid rgba(255,255,255,.15);
+    color:#EDEAE0; border-radius:3px; padding:.35rem .4rem; font-family:'IBM Plex Mono', monospace;
+    font-size:.74rem; color-scheme: dark;
+  }
+  .rail-period .ate{font-size:.7rem; color:#7E8FA0;}
+  .rail-period button{
+    width:100%; background:none; border:1px solid rgba(255,255,255,.18); color:#C8D1DA;
+    border-radius:3px; padding:.35rem 0; font-size:.72rem; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;
+    margin-top:.2rem;
+  }
+  .rail-period button:hover{background:rgba(255,255,255,.08);}
+
+  .rail-foot{font-size:.68rem; color:#6E7E8E; margin-top:1.4rem; line-height:1.5;}
+
+  .content{margin-left:266px; padding:2.6rem 3.2rem 4rem; max-width:1180px;}
+
+  section{padding-top:1.4rem; scroll-margin-top:1.2rem;}
+  section + section{margin-top:3.6rem; border-top:1px solid var(--line); padding-top:2.6rem;}
+
+  .section-head{display:flex; align-items:baseline; gap:.8rem; margin-bottom:.3rem; flex-wrap:wrap;}
+  .section-head .folio{
+    font-family:'IBM Plex Mono', monospace; font-size:.74rem; color:var(--ink-soft);
+    border:1px solid var(--line); border-radius:3px; padding:.1rem .45rem; background:var(--paper-raised);
+  }
+  .section-head h2{font-size:1.7rem;}
+  .section-note{color:var(--ink-soft); font-size:.88rem; margin:.5rem 0 1.6rem; max-width:640px;}
+
+  /* ---------- KPI cards (stub/ticket) ---------- */
+  .kpi-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1.8rem;}
+  .kpi-card{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:3px;
+    padding:1rem 1.1rem 1.1rem; position:relative; box-shadow:var(--shadow);
+  }
+  .kpi-card .label{
+    font-size:.68rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-soft);
+  }
+  .kpi-card .tear{
+    position:relative; border-top:1px dashed var(--line); margin:.55rem 0 .5rem;
+  }
+  .kpi-card .tear::before, .kpi-card .tear::after{
+    content:""; position:absolute; top:-7px; width:14px; height:14px;
+    border-radius:50%; background:var(--paper);
+  }
+  .kpi-card .tear::before{left:-1.1rem;}
+  .kpi-card .tear::after{right:-1.1rem;}
+  .kpi-card .value{font-family:'Fraunces', serif; font-size:1.9rem; font-weight:600;}
+  .kpi-card .value.alert{color:var(--alert);}
+  .kpi-card .hint{font-size:.74rem; color:var(--ink-soft); margin-top:.25rem;}
+
+  /* ---------- panels / charts ---------- */
+  .chart-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:1rem; margin-bottom:1rem;}
+  .panel{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:3px;
+    padding:1.2rem 1.3rem 1.4rem; box-shadow:var(--shadow);
+  }
+  .panel h3{font-size:.98rem; margin-bottom:.9rem; font-weight:600;}
+  .panel .sub{font-size:.74rem; color:var(--ink-soft); margin-top:-.6rem; margin-bottom:.9rem;}
+
+  /* bar chart (volume) */
+  .bars{display:flex; align-items:flex-end; gap:1.4rem; height:150px; padding-top:.5rem;}
+  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;}
+  .bar-col .bar{width:62%; border-radius:2px 2px 0 0; transition:height .5s ease;}
+  .bar-col .n{font-family:'IBM Plex Mono', monospace; font-size:.82rem; margin-bottom:.3rem;}
+  .bar-col .lbl{font-size:.74rem; color:var(--ink-soft); margin-top:.5rem; text-align:center;}
+
+  /* donut */
+  .donut-wrap{display:flex; align-items:center; gap:1.3rem;}
+  .donut{
+    width:128px; height:128px; border-radius:50%; flex-shrink:0; position:relative;
+  }
+  .donut::after{
+    content:""; position:absolute; inset:20px; border-radius:50%; background:var(--paper-raised);
+  }
+  .donut-total{
+    position:absolute; inset:20px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .donut-total .n{font-family:'IBM Plex Mono', monospace; font-size:.92rem; font-weight:600;}
+  .donut-total .l{font-size:.6rem; color:var(--ink-soft); letter-spacing:.06em; text-transform:uppercase;}
+  .legend{display:flex; flex-direction:column; gap:.5rem; font-size:.82rem;}
+  .legend .dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:.5rem;}
+  .legend .v{margin-left:auto; font-family:'IBM Plex Mono', monospace;}
+  .legend li{display:flex; align-items:center; list-style:none;}
+  .legend{padding:0; margin:0;}
+
+  /* trend line */
+  .trend-svg{width:100%; height:160px; display:block;}
+
+  /* comparativo horizontal bars */
+  .hbars{display:flex; flex-direction:column; gap:.85rem;}
+  .hbar-row{display:grid; grid-template-columns:90px 1fr 92px; align-items:center; gap:.7rem;}
+  .hbar-row .lbl{font-size:.82rem; color:var(--ink-soft);}
+  .hbar-track{height:12px; background:var(--paper); border:1px solid var(--line); border-radius:3px; overflow:hidden;}
+  .hbar-fill{height:100%; border-radius:2px;}
+  .hbar-row .val{font-family:'IBM Plex Mono', monospace; font-size:.82rem; text-align:right;}
+
+  /* ---------- filter bar ---------- */
+  .filter-bar{display:flex; align-items:center; gap:.8rem; margin-bottom:1.1rem; flex-wrap:wrap;}
+  .chip-group{display:flex; gap:.4rem;}
+  .chip{
+    font-family:'IBM Plex Mono', monospace; font-size:.74rem; letter-spacing:.04em;
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink-soft);
+    border-radius:3px; padding:.38rem .7rem; cursor:pointer; text-transform:uppercase;
+  }
+  .chip:hover{border-color:var(--ink-soft);}
+  .chip.active{color:#fff; border-color:transparent;}
+  .chip[data-tipo="Todos"].active{background:var(--ink);}
+  .chip[data-tipo="SUS"].active{background:var(--slate);}
+  .chip[data-tipo="Particular"].active{background:var(--mustard);}
+  .chip[data-tipo="Convenio"].active{background:var(--rose);}
+  select, .search-input{
+    font-family:'IBM Plex Sans', sans-serif; font-size:.84rem; border:1px solid var(--line);
+    background:var(--paper-raised); border-radius:3px; padding:.4rem .6rem; color:var(--ink);
+  }
+  .search-input{min-width:200px;}
+
+  /* ---------- tables ---------- */
+  .table-panel{padding:0; overflow:hidden;}
+  table{width:100%; border-collapse:collapse; font-size:.84rem;}
+  thead th{
+    text-align:left; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft); padding:.7rem .9rem; border-bottom:1px solid var(--line); background:var(--paper);
+  }
+  tbody td{padding:.62rem .9rem; border-bottom:1px solid var(--line);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{border-left:3px solid transparent;}
+  tbody tr.via-SUS{border-left-color:var(--slate);}
+  tbody tr.via-Particular{border-left-color:var(--mustard);}
+  tbody tr.via-Convenio{border-left-color:var(--rose);}
+  td.num{font-family:'IBM Plex Mono', monospace; text-align:right;}
+  .empty-row td{text-align:center; color:var(--ink-soft); padding:1.6rem; font-style:italic;}
+
+  /* ---------- stamps ---------- */
+  .stamp{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:.66rem;
+    letter-spacing:.1em; text-transform:uppercase; padding:.15rem .5rem .18rem;
+    border:1.4px solid currentColor; border-radius:3px; transform:rotate(-2deg); font-weight:600;
+    position:relative;
+  }
+  .stamp::after{
+    content:""; position:absolute; inset:-3px; border:1px solid currentColor; border-radius:5px; opacity:.3;
+  }
+  .stamp--ok{color:var(--ok);}
+  .stamp--warn{color:var(--mustard);}
+  .stamp--alert{color:var(--alert);}
+  .stamp--neutral{color:var(--ink-soft); transform:rotate(0deg);}
+  .stamp--neutral::after{display:none;}
+
+  /* ---------- gauges ---------- */
+  .gauge-grid{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.6rem;}
+  .gauge-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.6rem;}
+  .gauge-value{font-family:'Fraunces', serif; font-size:1.5rem; font-weight:600;}
+  .gauge-track{position:relative; height:10px; background:var(--paper); border:1px solid var(--line); border-radius:3px;}
+  .gauge-fill{position:absolute; top:0; left:0; height:100%; border-radius:2px;}
+  .gauge-marker{position:absolute; top:-4px; width:2px; height:18px; background:var(--ink);}
+  .gauge-foot{display:flex; justify-content:space-between; font-size:.7rem; color:var(--ink-soft); margin-top:.4rem;}
+
+  /* ---------- alerts (gargalos) ---------- */
+  .alert-list{display:flex; flex-direction:column; gap:.7rem;}
+  .alert-note{
+    display:flex; gap:.8rem; align-items:flex-start; background:var(--paper-raised);
+    border:1px solid var(--line); border-left:3px solid var(--alert); border-radius:3px;
+    padding:.85rem 1rem;
+  }
+  .alert-note.ok{border-left-color:var(--ok);}
+  .alert-note .stamp{margin-top:.1rem; flex-shrink:0;}
+  .alert-note p{margin:0; font-size:.86rem;}
+
+  footer{
+    margin-top:3.5rem; padding-top:1.4rem; border-top:1px solid var(--line);
+    font-size:.74rem; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:.5rem;
+  }
+
+  /* ---------- entrance animation ---------- */
+  @media (prefers-reduced-motion: no-preference){
+    .kpi-card, .panel, .alert-note{
+      animation: subir .45s ease both;
+    }
+    @keyframes subir{
+      from{opacity:0; transform:translateY(8px);}
+      to{opacity:1; transform:translateY(0);}
+    }
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 980px){
+    .chart-grid{grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .gauge-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width: 880px){
+    .rail{position:static; width:auto; height:auto; flex-direction:row; align-items:center; flex-wrap:wrap; gap:1rem;}
+    .rail-nav{flex-direction:row; flex-wrap:wrap; margin-bottom:0;}
+    .rail-period{margin-bottom:0; flex:1; min-width:240px;}
+    .content{margin-left:0; padding:2rem 1.3rem 3rem;}
+    .kpi-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width: 560px){
+    .kpi-grid{grid-template-columns:1fr;}
+    .hbar-row{grid-template-columns:70px 1fr 78px;}
+  }
+</style>
+</head>
+<body>
+
+  <aside class="rail">
+    <div>
+      <span class="rail-mark">§</span>
+      <h1>Boletim<br>Financeiro</h1>
+      <p class="rail-sub">Gestão Administrativo&#8209;Financeira · Saúde</p>
+    </div>
+    <nav class="rail-nav" id="railNav">
+      <a href="#visao-geral" data-target="visao-geral"><span class="folio">Fl. 01</span> Visão Geral</a>
+      <a href="#consultas" data-target="consultas"><span class="folio">Fl. 02</span> Consultas</a>
+      <a href="#pagamentos" data-target="pagamentos"><span class="folio">Fl. 03</span> Pagamentos</a>
+      <a href="#gargalos" data-target="gargalos"><span class="folio">Fl. 04</span> Gargalos</a>
+    </nav>
+    <div class="rail-period">
+      <label>Período de apuração</label>
+      <div class="row">
+        <input type="date" id="dataInicio" aria-label="Data inicial">
+      </div>
+      <div class="row">
+        <span class="ate">até</span>
+        <input type="date" id="dataFim" aria-label="Data final">
+      </div>
+      <button id="limparPeriodo" type="button">Ver tudo</button>
+    </div>
+    <p class="rail-foot">Dados de exemplo do projeto · mesma base usada em <span class="mono">seed_data.py</span></p>
+  </aside>
+
+  <main class="content">
+
+    <section id="visao-geral">
+      <header class="section-head"><span class="folio">Fl. 01</span><h2>Visão Geral</h2></header>
+      <p class="section-note">Indicadores consolidados do período selecionado: volume de atendimento, receita e saúde financeira da operação.</p>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="chart-grid">
+        <div class="panel">
+          <h3>Volume de consultas por tipo</h3>
+          <p class="sub">Quantidade de atendimentos registrados no período</p>
+          <div class="bars" id="chartVolume"></div>
+        </div>
+        <div class="panel">
+          <h3>Receita por tipo</h3>
+          <p class="sub">Participação na receita (consultas realizadas)</p>
+          <div class="donut-wrap">
+            <div class="donut" id="donut">
+              <div class="donut-total"><span class="n mono" id="donutTotal">—</span><span class="l">total</span></div>
+            </div>
+            <ul class="legend" id="legend"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Tendência de receita acumulada</h3>
+        <p class="sub">Soma cumulativa da receita das consultas realizadas, em ordem cronológica</p>
+        <svg class="trend-svg" id="trendSvg" viewBox="0 0 760 160" preserveAspectRatio="none"></svg>
+      </div>
+    </section>
+
+    <section id="consultas">
+      <header class="section-head"><span class="folio">Fl. 02</span><h2>Consultas</h2></header>
+      <p class="section-note">Listagem filtrável por tipo de consulta, status e busca livre (paciente, profissional, data).</p>
+
+      <div class="filter-bar">
+        <div class="chip-group" id="chipTipo">
+          <button class="chip active" data-tipo="Todos">Todos</button>
+          <button class="chip" data-tipo="SUS">SUS</button>
+          <button class="chip" data-tipo="Particular">Particular</button>
+          <button class="chip" data-tipo="Convenio">Convênio</button>
+        </div>
+        <select id="filtroStatus">
+          <option value="">Todos os status</option>
+          <option value="Realizada">Realizada</option>
+          <option value="Cancelada">Cancelada</option>
+          <option value="Agendada">Agendada</option>
+        </select>
+        <input class="search-input" id="busca" type="text" placeholder="Buscar paciente, profissional, data…">
+      </div>
+
+      <div class="panel table-panel">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Paciente</th><th>Profissional</th><th>Data</th><th>Tipo</th><th>Status</th><th style="text-align:right">Valor</th></tr>
+          </thead>
+          <tbody id="tabelaConsultas"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="pagamentos">
+      <header class="section-head"><span class="folio">Fl. 03</span><h2>Pagamentos</h2></header>
+      <p class="section-note">Comparativo entre o valor faturado e o que foi efetivamente recebido, pendente ou glosado no período.</p>
+
+      <div class="panel" style="margin-bottom:1rem;">
+        <h3>Comparativo financeiro</h3>
+        <div class="hbars" id="comparativo"></div>
+      </div>
+
+      <div class="panel table-panel">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Consulta</th><th>Paciente</th><th>Data pagto.</th><th>Status</th><th style="text-align:right">Valor pago</th></tr>
+          </thead>
+          <tbody id="tabelaPagamentos"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="gargalos">
+      <header class="section-head"><span class="folio">Fl. 04</span><h2>Gargalos</h2></header>
+      <p class="section-note">Leitura automática dos indicadores contra limiares configuráveis (mesmos parâmetros de <span class="mono">config.json</span>).</p>
+
+      <div class="gauge-grid">
+        <div class="panel">
+          <div class="gauge-head"><span>Taxa de cancelamento</span><span class="gauge-value mono" id="gaugeCancelValor">—</span></div>
+          <div class="gauge-track"><div class="gauge-fill" id="gaugeCancelFill"></div><div class="gauge-marker" id="gaugeCancelMark"></div></div>
+          <div class="gauge-foot"><span>0%</span><span id="gaugeCancelLimite">limite —%</span><span>50%</span></div>
+        </div>
+        <div class="panel">
+          <div class="gauge-head"><span>Taxa de glosa</span><span class="gauge-value mono" id="gaugeGlosaValor">—</span></div>
+          <div class="gauge-track"><div class="gauge-fill" id="gaugeGlosaFill"></div><div class="gauge-marker" id="gaugeGlosaMark"></div></div>
+          <div class="gauge-foot"><span>0%</span><span id="gaugeGlosaLimite">limite —%</span><span>50%</span></div>
+        </div>
+      </div>
+
+      <div class="alert-list" id="listaGargalos"></div>
+    </section>
+
+    <footer>
+      <span>Dashboard para Gestão em Saúde — visualização estática a partir dos dados do sistema Python.</span>
+      <span id="atualizadoEm" class="mono"></span>
+    </footer>
+  </main>
+
+<script>
+  // ============================================================
+  // DADOS — mesma base do projeto Python (storage.py / seed_data.py).
+  // Para usar dados reais, exporte data/*.csv para este formato
+  // (veja services.py / storage.carregar) e substitua os arrays abaixo.
+  // ============================================================
+  const pacientes = [
+    {id:1, nome:"Maria Silva", convenio:"Nenhum"},
+    {id:2, nome:"João Pereira", convenio:"Unimed"},
+    {id:3, nome:"Ana Costa", convenio:"Nenhum"},
+    {id:4, nome:"Carlos Souza", convenio:"Bradesco Saúde"},
+    {id:5, nome:"Beatriz Lima", convenio:"Nenhum"},
+  ];
+
+  const profissionais = [
+    {id:1, nome:"Dr. Pedro Alves", especialidade:"Clínico Geral"},
+    {id:2, nome:"Dra. Fernanda Rocha", especialidade:"Cardiologia"},
+    {id:3, nome:"Dra. Juliana Mendes", especialidade:"Pediatria"},
+  ];
+
+  const consultas = [
+    {id:1, pacienteId:1, profissionalId:1, data:"05/01/2026", tipo:"SUS", status:"Realizada", valor:0},
+    {id:2, pacienteId:2, profissionalId:2, data:"06/01/2026", tipo:"Convenio", status:"Realizada", valor:180},
+    {id:3, pacienteId:3, profissionalId:1, data:"07/01/2026", tipo:"Particular", status:"Realizada", valor:250},
+    {id:4, pacienteId:4, profissionalId:3, data:"10/01/2026", tipo:"Convenio", status:"Cancelada", valor:200},
+    {id:5, pacienteId:5, profissionalId:2, data:"12/01/2026", tipo:"SUS", status:"Realizada", valor:0},
+    {id:6, pacienteId:1, profissionalId:1, data:"15/01/2026", tipo:"Particular", status:"Realizada", valor:300},
+    {id:7, pacienteId:2, profissionalId:3, data:"18/01/2026", tipo:"Convenio", status:"Realizada", valor:220},
+    {id:8, pacienteId:3, profissionalId:2, data:"20/01/2026", tipo:"SUS", status:"Cancelada", valor:0},
+    {id:9, pacienteId:4, profissionalId:1, data:"22/01/2026", tipo:"Particular", status:"Realizada", valor:280},
+    {id:10, pacienteId:5, profissionalId:3, data:"25/01/2026", tipo:"Convenio", status:"Realizada", valor:190},
+    {id:11, pacienteId:1, profissionalId:2, data:"28/01/2026", tipo:"SUS", status:"Agendada", valor:0},
+    {id:12, pacienteId:2, profissionalId:1, data:"30/01/2026", tipo:"Convenio", status:"Realizada", valor:210},
+  ];
+
+  const pagamentos = [
+    {id:1, consultaId:2, valorPago:180, dataPagamento:"10/01/2026", status:"Pago"},
+    {id:2, consultaId:3, valorPago:250, dataPagamento:"12/01/2026", status:"Pago"},
+    {id:3, consultaId:6, valorPago:300, dataPagamento:"20/01/2026", status:"Pago"},
+    {id:4, consultaId:7, valorPago:220, dataPagamento:"22/01/2026", status:"Glosado"},
+    {id:5, consultaId:9, valorPago:280, dataPagamento:"28/01/2026", status:"Pendente"},
+    {id:6, consultaId:10, valorPago:190, dataPagamento:"30/01/2026", status:"Pago"},
+    {id:7, consultaId:12, valorPago:210, dataPagamento:"02/02/2026", status:"Pendente"},
+  ];
+
+  // Limiares — mesmos defaults de rules.py / config.json
+  const LIMIARES = {
+    cancelamento: 15, glosa: 10, pendente: 20, concentracao: 70,
+  };
+
+  const VIA_COR = {SUS:"var(--slate)", Particular:"var(--mustard)", Convenio:"var(--rose)"};
+  const VIA_LABEL = {SUS:"SUS", Particular:"Particular", Convenio:"Convênio"};
+
+  const pacientesById = Object.fromEntries(pacientes.map(p=>[p.id,p]));
+  const profissionaisById = Object.fromEntries(profissionais.map(p=>[p.id,p]));
+
+  // ---------- utilidades ----------
+  function parseData(str){
+    const [d,m,y] = str.split("/").map(Number);
+    return new Date(y, m-1, d);
+  }
+  function noPeriodo(dataStr, inicio, fim){
+    const d = parseData(dataStr);
+    if(inicio && d < inicio) return false;
+    if(fim && d > fim) return false;
+    return true;
+  }
+  function formatMoeda(v){
+    return "R$ " + v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function formatPct(v){ return v.toFixed(2).replace(".",",") + "%"; }
+
+  function lerPeriodo(){
+    const i = document.getElementById('dataInicio').value;
+    const f = document.getElementById('dataFim').value;
+    return {
+      inicio: i ? new Date(i+"T00:00:00") : null,
+      fim: f ? new Date(f+"T23:59:59") : null,
+    };
+  }
+
+  // ---------- cálculos (mesma lógica de rules.py) ----------
+  function calcularKPIs(periodo){
+    const cs = consultas.filter(c => noPeriodo(c.data, periodo.inicio, periodo.fim));
+    const ps = pagamentos.filter(p => noPeriodo(p.dataPagamento, periodo.inicio, periodo.fim));
+
+    const volumePorTipo = {};
+    cs.forEach(c => volumePorTipo[c.tipo] = (volumePorTipo[c.tipo]||0)+1);
+
+    const realizadas = cs.filter(c => c.status === "Realizada");
+    const receitaPorTipo = {};
+    realizadas.forEach(c => receitaPorTipo[c.tipo] = (receitaPorTipo[c.tipo]||0)+c.valor);
+
+    const ticketMedioPorTipo = {};
+    Object.keys(receitaPorTipo).forEach(tipo=>{
+      const qtd = realizadas.filter(c=>c.tipo===tipo).length;
+      ticketMedioPorTipo[tipo] = qtd ? receitaPorTipo[tipo]/qtd : 0;
+    });
+
+    const taxaCancelamento = cs.length ? 100*cs.filter(c=>c.status==="Cancelada").length/cs.length : 0;
+    const taxaGlosa = ps.length ? 100*ps.filter(p=>p.status==="Glosado").length/ps.length : 0;
+
+    const faturado = Object.values(receitaPorTipo).reduce((a,b)=>a+b,0);
+    let recebido=0, pendente=0, glosado=0;
+    ps.forEach(p=>{
+      if(p.status==="Pago") recebido += p.valorPago;
+      else if(p.status==="Pendente") pendente += p.valorPago;
+      else if(p.status==="Glosado") glosado += p.valorPago;
+    });
+
+    const gargalos = [];
+    if(taxaCancelamento > LIMIARES.cancelamento){
+      gargalos.push({tipo:"alert", texto:`Taxa de cancelamento alta: ${formatPct(taxaCancelamento)} das consultas foram canceladas (limite: ${LIMIARES.cancelamento}%). Recomenda-se revisar o processo de agendamento/confirmação.`});
+    }
+    if(taxaGlosa > LIMIARES.glosa){
+      gargalos.push({tipo:"alert", texto:`Taxa de glosa elevada: ${formatPct(taxaGlosa)} dos pagamentos foram glosados (limite: ${LIMIARES.glosa}%). Recomenda-se revisar documentação/autorização junto aos convênios.`});
+    }
+    if(pendente>0 && faturado>0){
+      const pct = 100*pendente/faturado;
+      if(pct > LIMIARES.pendente){
+        gargalos.push({tipo:"alert", texto:`Recebíveis pendentes representam ${formatPct(pct)} do faturado — possível atraso no fluxo de caixa.`});
+      }
+    }
+    const totalVol = Object.values(volumePorTipo).reduce((a,b)=>a+b,0);
+    if(totalVol){
+      const tipoDom = Object.keys(volumePorTipo).reduce((a,b)=>volumePorTipo[a]>volumePorTipo[b]?a:b);
+      const pct = 100*volumePorTipo[tipoDom]/totalVol;
+      if(pct > LIMIARES.concentracao){
+        gargalos.push({tipo:"alert", texto:`Forte concentração de consultas em '${VIA_LABEL[tipoDom]}' (${formatPct(pct)}) — possível dependência excessiva de um único tipo de receita.`});
+      }
+    }
+    if(!gargalos.length){
+      gargalos.push({tipo:"ok", texto:"Nenhum gargalo crítico identificado no período analisado."});
+    }
+
+    return {cs, ps, volumePorTipo, receitaPorTipo, ticketMedioPorTipo, taxaCancelamento, taxaGlosa,
+            saldo:{faturado, recebido, pendente, glosado, saldo:recebido-glosado}, gargalos};
+  }
+
+  // ---------- render: KPI cards ----------
+  function renderKPIs(k){
+    const totalVol = Object.values(k.volumePorTipo).reduce((a,b)=>a+b,0);
+    const totalReceita = Object.values(k.receitaPorTipo).reduce((a,b)=>a+b,0);
+    const qtdRealizadas = k.cs.filter(c=>c.status==="Realizada").length;
+    const ticketGeral = qtdRealizadas ? totalReceita/qtdRealizadas : 0;
+
+    const cards = [
+      {label:"Volume de consultas", value: totalVol, hint:`${qtdRealizadas} realizadas no período`},
+      {label:"Receita total", value: formatMoeda(totalReceita), hint:"consultas realizadas"},
+      {label:"Ticket médio", value: formatMoeda(ticketGeral), hint:"por consulta realizada"},
+      {label:"Saldo financeiro", value: formatMoeda(k.saldo.saldo), hint:"recebido − glosado", alert: k.saldo.saldo < 0},
+      {label:"Taxa de cancelamento", value: formatPct(k.taxaCancelamento), hint:`limite: ${LIMIARES.cancelamento}%`, alert: k.taxaCancelamento>LIMIARES.cancelamento},
+      {label:"Taxa de glosa", value: formatPct(k.taxaGlosa), hint:`limite: ${LIMIARES.glosa}%`, alert: k.taxaGlosa>LIMIARES.glosa},
+    ];
+
+    document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+      <div class="kpi-card">
+        <div class="label">${c.label}</div>
+        <div class="tear"></div>
+        <div class="value mono${c.alert?' alert':''}">${c.value}</div>
+        <div class="hint">${c.hint}</div>
+      </div>`).join('');
+  }
+
+  // ---------- render: bar chart volume ----------
+  function renderVolume(k){
+    const tipos = ["SUS","Particular","Convenio"];
+    const max = Math.max(1, ...tipos.map(t=>k.volumePorTipo[t]||0));
+    document.getElementById('chartVolume').innerHTML = tipos.map(t=>{
+      const n = k.volumePorTipo[t]||0;
+      const h = Math.max(4, Math.round(100*n/max));
+      return `<div class="bar-col">
+                <span class="n mono">${n}</span>
+                <div class="bar" style="height:${h}%; background:${VIA_COR[t]}"></div>
+                <span class="lbl">${VIA_LABEL[t]}</span>
+              </div>`;
+    }).join('');
+  }
+
+  // ---------- render: donut receita ----------
+  function renderDonut(k){
+    const tipos = ["SUS","Particular","Convenio"];
+    const total = tipos.reduce((s,t)=>s+(k.receitaPorTipo[t]||0),0);
+    const donut = document.getElementById('donut');
+    const legend = document.getElementById('legend');
+    document.getElementById('donutTotal').textContent = total ? formatMoeda(total) : "—";
+
+    if(!total){
+      donut.style.background = "var(--paper)";
+      legend.innerHTML = `<li style="color:var(--ink-soft)">Sem receita no período</li>`;
+      return;
+    }
+    let acc = 0;
+    const stops = [];
+    tipos.forEach(t=>{
+      const v = k.receitaPorTipo[t]||0;
+      if(v<=0) return;
+      const start = 100*acc/total;
+      acc += v;
+      const end = 100*acc/total;
+      stops.push(`${VIA_COR[t]} ${start}% ${end}%`);
+    });
+    donut.style.background = `conic-gradient(${stops.join(',')})`;
+
+    legend.innerHTML = tipos.filter(t=>(k.receitaPorTipo[t]||0)>0).map(t=>{
+      const v = k.receitaPorTipo[t];
+      const pct = formatPct(100*v/total);
+      return `<li><span class="dot" style="background:${VIA_COR[t]}"></span>${VIA_LABEL[t]}<span class="v">${pct}</span></li>`;
+    }).join('');
+  }
+
+  // ---------- render: tendência (linha SVG) ----------
+  function renderTendencia(k){
+    const svg = document.getElementById('trendSvg');
+    const realizadas = k.cs.filter(c=>c.status==="Realizada").slice().sort((a,b)=>parseData(a.data)-parseData(b.data));
+    if(realizadas.length < 1){
+      svg.innerHTML = `<text x="380" y="80" text-anchor="middle" fill="var(--ink-soft)" font-size="13">Sem dados suficientes no período</text>`;
+      return;
+    }
+    let acc = 0;
+    const pontos = realizadas.map(c=>{ acc += c.valor; return {data:c.data, total:acc}; });
+    const max = Math.max(1, acc);
+    const W = 760, H = 160, PAD = 28;
+    const n = pontos.length;
+    const x = i => n>1 ? PAD + (W-2*PAD) * i/(n-1) : W/2;
+    const y = v => H-PAD - (H-2*PAD) * v/max;
+
+    const coords = pontos.map((p,i)=>[x(i), y(p.total)]);
+    const linePath = coords.map((c,i)=> (i===0?'M':'L') + c[0].toFixed(1) + ' ' + c[1].toFixed(1)).join(' ');
+    const areaPath = linePath + ` L ${coords[coords.length-1][0].toFixed(1)} ${H-PAD} L ${coords[0][0].toFixed(1)} ${H-PAD} Z`;
+
+    const dots = coords.map((c,i)=>`<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="3.2" fill="var(--ink)"></circle>`).join('');
+    const labelPrimeira = pontos[0].data;
+    const labelUltima = pontos[pontos.length-1].data;
+
+    svg.innerHTML = `
+      <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="var(--line)" stroke-width="1"/>
+      <path d="${areaPath}" fill="var(--slate)" opacity="0.08"></path>
+      <path d="${linePath}" fill="none" stroke="var(--ink)" stroke-width="2"></path>
+      ${dots}
+      <text x="${PAD}" y="${H-8}" font-size="11" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace">${labelPrimeira}</text>
+      <text x="${W-PAD}" y="${H-8}" text-anchor="end" font-size="11" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace">${labelUltima}</text>
+      <text x="${PAD}" y="16" font-size="11" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace">${formatMoeda(max)}</text>
+    `;
+  }
+
+  // ---------- render: comparativo financeiro ----------
+  function renderComparativo(k){
+    const itens = [
+      {lbl:"Faturado", v:k.saldo.faturado, cor:"var(--ink-soft)"},
+      {lbl:"Recebido", v:k.saldo.recebido, cor:"var(--ok)"},
+      {lbl:"Pendente", v:k.saldo.pendente, cor:"var(--mustard)"},
+      {lbl:"Glosado", v:k.saldo.glosado, cor:"var(--alert)"},
+    ];
+    const max = Math.max(1, ...itens.map(i=>i.v));
+    document.getElementById('comparativo').innerHTML = itens.map(i=>`
+      <div class="hbar-row">
+        <span class="lbl">${i.lbl}</span>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${100*i.v/max}%; background:${i.cor}"></div></div>
+        <span class="val mono">${formatMoeda(i.v)}</span>
+      </div>`).join('');
+  }
+
+  // ---------- render: gauges ----------
+  function renderGauges(k){
+    const ESCALA = 50; // % máximo exibido na régua
+    function set(prefix, valor, limite){
+      const pctFill = Math.min(100, 100*valor/ESCALA);
+      const pctMark = Math.min(100, 100*limite/ESCALA);
+      const cor = valor > limite ? "var(--alert)" : "var(--ok)";
+      document.getElementById(prefix+'Valor').textContent = formatPct(valor);
+      document.getElementById(prefix+'Valor').style.color = cor;
+      document.getElementById(prefix+'Fill').style.width = pctFill+'%';
+      document.getElementById(prefix+'Fill').style.background = cor;
+      document.getElementById(prefix+'Mark').style.left = pctMark+'%';
+      document.getElementById(prefix+'Limite').textContent = 'limite ' + limite + '%';
+    }
+    set('gaugeCancel', k.taxaCancelamento, LIMIARES.cancelamento);
+    set('gaugeGlosa', k.taxaGlosa, LIMIARES.glosa);
+  }
+
+  // ---------- render: gargalos ----------
+  function renderGargalos(k){
+    document.getElementById('listaGargalos').innerHTML = k.gargalos.map(g=>`
+      <div class="alert-note ${g.tipo==='ok'?'ok':''}">
+        <span class="stamp ${g.tipo==='ok'?'stamp--ok':'stamp--alert'}">${g.tipo==='ok'?'Em dia':'Atenção'}</span>
+        <p>${g.texto}</p>
+      </div>`).join('');
+  }
+
+  // ---------- render: tabelas ----------
+  const STAMP_STATUS_CONSULTA = {Realizada:'stamp--ok', Cancelada:'stamp--alert', Agendada:'stamp--neutral'};
+  const STAMP_STATUS_PAGTO = {Pago:'stamp--ok', Pendente:'stamp--warn', Glosado:'stamp--alert'};
+
+  let filtroTipo = 'Todos';
+  let filtroStatus = '';
+  let buscaTexto = '';
+
+  function renderTabelaConsultas(k){
+    let lista = k.cs.slice();
+    if(filtroTipo !== 'Todos') lista = lista.filter(c=>c.tipo===filtroTipo);
+    if(filtroStatus) lista = lista.filter(c=>c.status===filtroStatus);
+    if(buscaTexto){
+      const t = buscaTexto.toLowerCase();
+      lista = lista.filter(c=>{
+        const pac = (pacientesById[c.pacienteId]||{}).nome || '';
+        const prof = (profissionaisById[c.profissionalId]||{}).nome || '';
+        return pac.toLowerCase().includes(t) || prof.toLowerCase().includes(t) || c.data.includes(t);
+      });
+    }
+    lista.sort((a,b)=>parseData(b.data)-parseData(a.data));
+
+    const tbody = document.getElementById('tabelaConsultas');
+    if(!lista.length){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Nenhuma consulta encontrada para este filtro.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = lista.map(c=>{
+      const pac = (pacientesById[c.pacienteId]||{}).nome || `#${c.pacienteId}`;
+      const prof = (profissionaisById[c.profissionalId]||{}).nome || `#${c.profissionalId}`;
+      return `<tr class="via-${c.tipo}">
+        <td class="mono">${c.id}</td>
+        <td>${pac}</td>
+        <td>${prof}</td>
+        <td class="mono">${c.data}</td>
+        <td><span class="stamp" style="color:${VIA_COR[c.tipo]}">${VIA_LABEL[c.tipo]}</span></td>
+        <td><span class="stamp ${STAMP_STATUS_CONSULTA[c.status]}">${c.status}</span></td>
+        <td class="num">${c.valor ? formatMoeda(c.valor) : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderTabelaPagamentos(k){
+    const lista = k.ps.slice().sort((a,b)=>parseData(b.dataPagamento)-parseData(a.dataPagamento));
+    const tbody = document.getElementById('tabelaPagamentos');
+    if(!lista.length){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Nenhum pagamento encontrado neste período.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = lista.map(p=>{
+      const consulta = consultas.find(c=>c.id===p.consultaId);
+      const pac = consulta ? (pacientesById[consulta.pacienteId]||{}).nome : '—';
+      return `<tr>
+        <td class="mono">${p.id}</td>
+        <td class="mono">#${p.consultaId}</td>
+        <td>${pac||'—'}</td>
+        <td class="mono">${p.dataPagamento}</td>
+        <td><span class="stamp ${STAMP_STATUS_PAGTO[p.status]}">${p.status}</span></td>
+        <td class="num">${formatMoeda(p.valorPago)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ---------- orquestração ----------
+  function rerenderTudo(){
+    const periodo = lerPeriodo();
+    const k = calcularKPIs(periodo);
+    renderKPIs(k);
+    renderVolume(k);
+    renderDonut(k);
+    renderTendencia(k);
+    renderComparativo(k);
+    renderGauges(k);
+    renderGargalos(k);
+    renderTabelaConsultas(k);
+    renderTabelaPagamentos(k);
+  }
+
+  // ---------- eventos ----------
+  document.getElementById('dataInicio').addEventListener('change', rerenderTudo);
+  document.getElementById('dataFim').addEventListener('change', rerenderTudo);
+  document.getElementById('limparPeriodo').addEventListener('click', ()=>{
+    document.getElementById('dataInicio').value = '';
+    document.getElementById('dataFim').value = '';
+    rerenderTudo();
+  });
+  document.querySelectorAll('#chipTipo .chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#chipTipo .chip').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      filtroTipo = btn.dataset.tipo;
+      rerenderTudo();
+    });
+  });
+  document.getElementById('filtroStatus').addEventListener('change', e=>{
+    filtroStatus = e.target.value;
+    rerenderTudo();
+  });
+  document.getElementById('busca').addEventListener('input', e=>{
+    buscaTexto = e.target.value;
+    rerenderTudo();
+  });
+
+  // scrollspy simples para o índice (rail-nav)
+  const navLinks = Array.from(document.querySelectorAll('#railNav a'));
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        navLinks.forEach(l=>l.classList.toggle('active', l.dataset.target === en.target.id));
+      }
+    });
+  }, {rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('main section').forEach(s=>obs.observe(s));
+
+  document.getElementById('atualizadoEm').textContent = 'visualizado em ' + new Date().toLocaleDateString('pt-BR');
+
+  rerenderTudo();
+</script>
+</body>
+</html>

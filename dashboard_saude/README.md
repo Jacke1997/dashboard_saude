@@ -4,10 +4,6 @@ Sistema em Python para gestão administrativo-financeira de uma clínica/área
 de saúde, com cadastro de pacientes, profissionais, consultas e pagamentos,
 cálculo de KPIs e geração de dashboard (texto + gráficos).
 
-Desenvolvido como projeto prático aplicando: estruturas de dados, funções,
-condicionais, laços, modularização, persistência em arquivo e tratamento de
-erros, conforme o roteiro das Aulas 15, 16 e 17.
-
 ## Como executar
 
 Requer Python 3.10+ e a biblioteca `matplotlib` (para os gráficos):
