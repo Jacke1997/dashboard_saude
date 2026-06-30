@@ -1,0 +1,8 @@
+id,consulta_id,valor_pago,data_pagamento,status
+1,2,180.0,10/01/2026,Pago
+2,3,250.0,12/01/2026,Pago
+3,6,300.0,20/01/2026,Pago
+4,7,220.0,22/01/2026,Glosado
+5,9,280.0,28/01/2026,Pendente
+6,10,190.0,30/01/2026,Pago
+7,12,210.0,02/02/2026,Pendente

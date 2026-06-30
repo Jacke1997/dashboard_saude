@@ -1,0 +1,9 @@
+{
+  "nome_sistema": "Dashboard para Gestão em Saúde",
+  "limiares": {
+    "taxa_cancelamento_max": 15.0,
+    "taxa_glosa_max": 10.0,
+    "percentual_pendente_max": 20.0,
+    "concentracao_tipo_max": 70.0
+  }
+}

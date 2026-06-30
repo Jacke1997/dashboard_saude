@@ -1,0 +1,13 @@
+id,paciente_id,profissional_id,data,tipo,status,valor
+1,1,1,05/01/2026,SUS,Realizada,0.0
+2,2,2,06/01/2026,Convenio,Realizada,180.0
+3,3,1,07/01/2026,Particular,Realizada,250.0
+4,4,3,10/01/2026,Convenio,Cancelada,200.0
+5,5,2,12/01/2026,SUS,Realizada,0.0
+6,1,1,15/01/2026,Particular,Realizada,300.0
+7,2,3,18/01/2026,Convenio,Realizada,220.0
+8,3,2,20/01/2026,SUS,Cancelada,0.0
+9,4,1,22/01/2026,Particular,Realizada,280.0
+10,5,3,25/01/2026,Convenio,Realizada,190.0
+11,1,2,28/01/2026,SUS,Agendada,0.0
+12,2,1,30/01/2026,Convenio,Realizada,210.0
